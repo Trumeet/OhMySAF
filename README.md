@@ -54,6 +54,31 @@ if (theFxxkFile.isFile()) {
 }
 ```
 
+## Extend usages
+
+Some APIs don't work with `SafFile`. In these cases, you should cast the returned `File` to `SafFile` and use extended APIs.
+
+```java
+SafFile theMagic = OhMySAF.ohMyUri(context, uri);
+```
+
+### Get Android Uri
+
+It returns the Android `Uri` and you can do ANYTHING you want with it.
+
+```java
+final Uri uri = theMagic.getAndroidUri();
+```
+
+### Open input / output stream
+
+The Java `FileInputStream` and `FileOutputStream` does not work with the file directly. Talk is cheap, let's show you the code:
+
+```java
+final OutputStream stream = theMagic.openOutputStream(this, "w");
+stream.close();
+```
+
 # Licenses
 
 Apache 2.0
