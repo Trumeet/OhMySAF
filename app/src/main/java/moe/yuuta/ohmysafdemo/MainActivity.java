@@ -16,7 +16,6 @@ import android.view.View;
 import android.widget.ImageView;
 import android.widget.Toast;
 
-import java.io.File;
 import java.io.FileDescriptor;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -32,7 +31,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private ImageView mImage;
     private volatile Bitmap mBitmap;
-    private File mFile;
+    private SafFile mFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -87,7 +86,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             @Override
             public void run() {
                 try {
-                    OutputStream stream = getContentResolver().openOutputStream(((SafFile) mFile).getAndroidUri(), "w");
+                    OutputStream stream = mFile.openOutputStream(MainActivity.this, "w");
                     mBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                     stream.flush();
                     stream.close();
@@ -105,8 +104,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
             @Override
             public void run() {
                 try {
-                    ParcelFileDescriptor parcelFileDescriptor =
-                            getContentResolver().openFileDescriptor(((SafFile) mFile).getAndroidUri(), "r");
+                    ParcelFileDescriptor parcelFileDescriptor = mFile.openFileDescriptor(MainActivity.this, "r");
                     FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                     mBitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor);
                     parcelFileDescriptor.close();
@@ -191,7 +189,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
     }
 
     private void runTakePersistablePermission() {
-        getContentResolver().takePersistableUriPermission(((SafFile) mFile).getAndroidUri(),
+        mFile.takePersistableUriPermission(this,
                 Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         log("Done");
     }

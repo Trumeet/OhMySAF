@@ -1,22 +1,30 @@
 package moe.yuuta.ohmysaf;
 
+import android.content.Context;
 import android.net.Uri;
+import android.os.ParcelFileDescriptor;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.annotation.RestrictTo;
 import androidx.documentfile.provider.DocumentFile;
 
 import java.io.File;
 import java.io.FileFilter;
+import java.io.FileNotFoundException;
 import java.io.FilenameFilter;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 import java.net.MalformedURLException;
 import java.net.URI;
 import java.net.URL;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
+
+import static android.os.Build.VERSION_CODES.KITKAT;
 
 public class SafFile extends File {
     private final DocumentFile mOrig;
@@ -341,5 +349,25 @@ public class SafFile extends File {
     @Override
     public URL toURL() throws MalformedURLException {
         return new URL(mOrig.getUri().toString());
+    }
+
+    @Nullable
+    public ParcelFileDescriptor openFileDescriptor(@NonNull Context context, @NonNull String mode) throws FileNotFoundException {
+        return context.getContentResolver().openFileDescriptor(getAndroidUri(), mode);
+    }
+
+    @Nullable
+    public OutputStream openOutputStream(@NonNull Context context, @NonNull String mode) throws FileNotFoundException {
+        return context.getContentResolver().openOutputStream(getAndroidUri(), mode);
+    }
+
+    @Nullable
+    public InputStream openInputStream(@NonNull Context context) throws FileNotFoundException {
+        return context.getContentResolver().openInputStream(getAndroidUri());
+    }
+
+    @RequiresApi(KITKAT)
+    public void takePersistableUriPermission(@NonNull Context context, int modeFlags) {
+        context.getContentResolver().takePersistableUriPermission(getAndroidUri(), modeFlags);
     }
 }
