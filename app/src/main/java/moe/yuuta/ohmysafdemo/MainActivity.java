@@ -9,7 +9,6 @@ import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.ParcelFileDescriptor;
-import android.provider.DocumentsContract;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -24,6 +23,7 @@ import java.io.OutputStream;
 import java.util.Arrays;
 
 import moe.yuuta.ohmysaf.OhMySAF;
+import moe.yuuta.ohmysaf.SafFile;
 
 public class MainActivity extends Activity implements View.OnClickListener {
     private static final int RC_OPEN_DOC = 1;
@@ -32,8 +32,7 @@ public class MainActivity extends Activity implements View.OnClickListener {
 
     private ImageView mImage;
     private volatile Bitmap mBitmap;
-    private volatile String mFileName;
-    private Uri mUri;
+    private File mFile;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,47 +59,40 @@ public class MainActivity extends Activity implements View.OnClickListener {
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         log("Activity result.....");
         if (resultCode != RESULT_OK || data == null) return;
-        mUri = data.getData();
+        final Uri mUri = data.getData();
         log(mUri.toString());
+        mFile = OhMySAF.ohMyUri(this, mUri);
+        log("Name: " + mFile.getName() +
+                ", isFile: " + mFile.isFile() +
+                ", length: " + mFile.length() +
+                ", canWrite: " + mFile.canWrite() +
+                ", files: " + (mFile.isDirectory() ? Arrays.toString(mFile.list()) : "?"));
+        setTitle(mFile.getName());
         switch (requestCode) {
             case RC_OPEN_DOC:
-                File dir1 = OhMySAF.ohMyFile(this, mUri);
-                log("Name: " + dir1.getName() + ", length: " + dir1.length() +
-                        ", canWrite: " + dir1.canWrite());
-                mFileName = dir1.getName();
-                setTitle(mFileName);
-                handleDocSelected(mUri);
+                handleDocSelected();
                 break;
             case RC_CREATE_DOC:
-                File dir2 = OhMySAF.ohMyFile(this, mUri);
-                log("Name: " + dir2.getName() + ", length: " + dir2.length() +
-                        ", canWrite: " + dir2.canWrite());
-                mFileName = dir2.getName();
-                setTitle(mFileName);
-                handleDocCreated(mUri);
+                handleDocCreated();
                 break;
             case RC_OPEN_TREE:
-                File dir = OhMySAF.ohMyTree(this, mUri);
-                log("Name: " + dir.getName() + ", length: " + dir.length() +
-                        ", files: " + Arrays.toString(dir.listFiles()) +
-                        ", canWrite: " + dir.canWrite());
-                mFileName = dir.getName();
-                setTitle(mFileName);
+                mBitmap = null;
+                mImage.setImageBitmap(null);
                 break;
         }
     }
 
-    private void handleDocCreated(@NonNull final Uri uri) {
+    private void handleDocCreated() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
-                    OutputStream stream = getContentResolver().openOutputStream(uri, "w");
+                    OutputStream stream = getContentResolver().openOutputStream(((SafFile) mFile).getAndroidUri(), "w");
                     mBitmap.compress(Bitmap.CompressFormat.PNG, 100, stream);
                     stream.flush();
                     stream.close();
                     log("Write done");
-                    handleDocSelected(uri);
+                    handleDocSelected();
                 } catch (IOException e) {
                     log("Write: " + e.getMessage());
                 }
@@ -108,13 +100,13 @@ public class MainActivity extends Activity implements View.OnClickListener {
         }).start();
     }
 
-    private void handleDocSelected(@NonNull final Uri uri) {
+    private void handleDocSelected() {
         new Thread(new Runnable() {
             @Override
             public void run() {
                 try {
                     ParcelFileDescriptor parcelFileDescriptor =
-                            getContentResolver().openFileDescriptor(uri, "r");
+                            getContentResolver().openFileDescriptor(((SafFile) mFile).getAndroidUri(), "r");
                     FileDescriptor fileDescriptor = parcelFileDescriptor.getFileDescriptor();
                     mBitmap = BitmapFactory.decodeFileDescriptor(fileDescriptor);
                     parcelFileDescriptor.close();
@@ -181,26 +173,26 @@ public class MainActivity extends Activity implements View.OnClickListener {
         Intent intentCreateDoc = new Intent(Intent.ACTION_CREATE_DOCUMENT);
         intentCreateDoc.addCategory(Intent.CATEGORY_OPENABLE);
         intentCreateDoc.setType("image/*");
-        intentCreateDoc.putExtra(Intent.EXTRA_TITLE, "Copy_" + mFileName);
+        intentCreateDoc.putExtra(Intent.EXTRA_TITLE, "Copy_" + mFile.getName());
         startActivityForResult(intentCreateDoc, RC_CREATE_DOC);
     }
 
     private void runDeleteDoc() {
         try {
-            DocumentsContract.deleteDocument(getContentResolver(), mUri);
+            mFile.delete();
             log("Delete done");
-            mFileName = null;
             mBitmap = null;
-            mUri = null;
+            mFile = null;
             mImage.setImageBitmap(null);
             setTitle(R.string.app_name);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log("Delete: " + e.getMessage());
         }
     }
 
     private void runTakePersistablePermission() {
-        getContentResolver().takePersistableUriPermission(mUri, Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+        getContentResolver().takePersistableUriPermission(((SafFile) mFile).getAndroidUri(),
+                Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
         log("Done");
     }
 
