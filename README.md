@@ -4,7 +4,7 @@ Android [SAF](https://developer.android.com/guide/topics/providers/document-prov
 
 # Implement
 
-1. Add [maven.yuuta.moe](https://maven.yuuta.moe) repo to your module
+1. Add [maven.yuuta.dev](https://maven.yuuta.dev) repo to your module
 
 2. Add dependency:
 
