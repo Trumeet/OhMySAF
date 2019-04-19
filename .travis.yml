@@ -1,0 +1,18 @@
+jdk: oraclejdk8
+language: android
+android:
+  components:
+    - build-tools-28.0.3
+    - android-28
+before_install:
+  - git clone https://github.com/Trumeet/Maven.git ./repo
+  - "./gradlew exportVersion"
+  - export VERSION=$(cat version.txt)
+script:
+  - "./gradlew :ohmysaf:uploadArchives"
+deploy:
+  provider: script
+  script: chmod +x ./deploy_repo.sh && ./deploy_repo.sh
+  on:
+    repo: Trumeet/OhMySAF
+    branch: master
