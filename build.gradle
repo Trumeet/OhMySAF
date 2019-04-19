@@ -27,11 +27,11 @@ task clean(type: Delete) {
 }
 
 // Inserted by Trumeet@GitHub: add version info
-def commit = 'git rev-list --count HEAD'.execute([], project.rootDir).text.trim()
+def commit = Integer.parseInt('git rev-list --count HEAD'.execute([], project.rootDir).text.trim())
 def ver = "$commit"
 
 ext {
-    version = 1 //ver
+    version = commit
 }
 
 task exportVersion(type: Exec) {
